@@ -372,12 +372,14 @@ void * fim_run_realtime(__attribute__((unused)) void * args) {
     while (1) {
 #ifdef WIN32
         // Directories in Windows configured with real-time add recursive watches
+        w_rwlock_rdlock(&syscheck.directories_lock);
         OSList_foreach(node_it, syscheck.directories) {
             dir_it = node_it->data;
             if (dir_it->options & REALTIME_ACTIVE) {
                 realtime_adddir(dir_it->path, dir_it, 0);
             }
         }
+        w_rwlock_unlock(&syscheck.directories_lock);
 #endif
 
         if (_base_line == 0) {
@@ -438,7 +440,7 @@ void * fim_run_realtime(__attribute__((unused)) void * args) {
 #else
     directory_t *dir_it;
     OSListNode *node_it;
-
+    w_rwlock_rdlock(&syscheck.directories_lock);
     OSList_foreach(node_it, syscheck.directories) {
         dir_it = node_it->data;
         if (dir_it->options & REALTIME_ACTIVE) {
@@ -446,6 +448,7 @@ void * fim_run_realtime(__attribute__((unused)) void * args) {
             break;
         }
     }
+    w_rwlock_unlock(&syscheck.directories_lock);
 
     pthread_exit(NULL);
 #endif
@@ -478,6 +481,7 @@ int fim_whodata_initialize() {
     directory_t *dir_it;
     OSListNode *node_it;
 
+    w_rwlock_rdlock(&syscheck.directories_lock);
     OSList_foreach(node_it, syscheck.directories) {
         dir_it = node_it->data;
         if ((dir_it->options & WHODATA_ACTIVE) == 0) {
@@ -491,6 +495,8 @@ int fim_whodata_initialize() {
             syscheck.realtime_change = 1;
         }
     }
+    w_rwlock_unlock(&syscheck.directories_lock);
+
     HANDLE t_hdle;
     long unsigned int t_id;
 
@@ -584,6 +590,8 @@ static void *symlink_checker_thread(__attribute__((unused)) void * data) {
         mdebug1(FIM_LINKCHECK_START, syscheck.sym_checker_interval);
 
         w_mutex_lock(&syscheck.fim_scan_mutex);
+        w_rwlock_rdlock(&syscheck.directories_lock);
+
         OSList_foreach(node_it, syscheck.directories) {
             dir_it = node_it->data;
             if ((dir_it->options & CHECK_FOLLOW) == 0) {
@@ -624,6 +632,7 @@ static void *symlink_checker_thread(__attribute__((unused)) void * data) {
             os_free(real_path);
         }
 
+        w_rwlock_unlock(&syscheck.directories_lock);
         w_mutex_unlock(&syscheck.fim_scan_mutex);
         mdebug1(FIM_LINKCHECK_FINALIZE);
     }
@@ -640,6 +649,7 @@ STATIC void fim_link_update(const char *new_path, directory_t *configuration) {
 
     // Check if the previously pointed folder is in the configuration
     // and delete its database entries if it isn't
+    w_rwlock_rdlock(&syscheck.directories_lock);
     OSList_foreach(node_it, syscheck.directories) {
         dir_it = node_it->data;
         if (dir_it == configuration) {
@@ -652,6 +662,7 @@ STATIC void fim_link_update(const char *new_path, directory_t *configuration) {
             break;
         }
     }
+    w_rwlock_unlock(&syscheck.directories_lock);
 
     if (in_configuration == false) {
 #ifdef ENABLE_AUDIT
@@ -664,6 +675,7 @@ STATIC void fim_link_update(const char *new_path, directory_t *configuration) {
     }
 
     // Check if the updated path of the link is already in the configuration
+    w_rwlock_rdlock(&syscheck.directories_lock);
     OSList_foreach(node_it, syscheck.directories) {
         dir_it = node_it->data;
         if (dir_it == configuration) {
@@ -683,6 +695,7 @@ STATIC void fim_link_update(const char *new_path, directory_t *configuration) {
             break;
         }
     }
+    w_rwlock_unlock(&syscheck.directories_lock);
 
     w_mutex_lock(&syscheck.fim_symlink_mutex);
     os_free(configuration->symbolic_links);
@@ -732,7 +745,7 @@ STATIC void fim_link_check_delete(directory_t *configuration) {
     }
 }
 
-STATIC void fim_delete_realtime_watches(const directory_t *configuration) {
+STATIC void fim_delete_realtime_watches(__attribute__((unused)) const directory_t *configuration) {
 #ifdef INOTIFY_ENABLED
     OSHashNode *hash_node;
     char *data;
@@ -827,6 +840,7 @@ STATIC void fim_link_reload_broken_link(char *path, directory_t *configuration) 
     directory_t *dir_it;
     OSListNode *node_it;
 
+    w_rwlock_rdlock(&syscheck.directories_lock);
     OSList_foreach(node_it, syscheck.directories) {
         dir_it = node_it->data;
         if (strcmp(path, dir_it->path) == 0) {
@@ -835,6 +849,7 @@ STATIC void fim_link_reload_broken_link(char *path, directory_t *configuration) 
             return;
         }
     }
+    w_rwlock_unlock(&syscheck.directories_lock);
 
     // Reload broken link
     w_mutex_lock(&syscheck.fim_symlink_mutex);
@@ -858,6 +873,7 @@ void set_whodata_mode_changes() {
 
     syscheck.realtime_change = 0;
 
+    w_rwlock_rdlock(&syscheck.directories_lock);
     OSList_foreach(node_it, syscheck.directories) {
         dir_it = node_it->data;
         if (dir_it->dirs_status.status & WD_CHECK_REALTIME) {
@@ -871,5 +887,6 @@ void set_whodata_mode_changes() {
             }
         }
     }
+    w_rwlock_unlock(&syscheck.directories_lock);
 }
 #endif

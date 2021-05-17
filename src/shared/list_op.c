@@ -424,6 +424,29 @@ OSListNode *OSList_GetNext(OSList *list, OSListNode *node) {
     return (next);
 }
 
+void *OSList_GetDataFromIndex(OSList *list, int index) {
+    int count = 0;
+    OSListNode *current = list->first_node;
+
+    w_rwlock_rdlock((pthread_rwlock_t *)&list->wr_mutex);
+    w_mutex_lock((pthread_mutex_t *)&list->mutex);
+
+    while (current != NULL) {
+        if (count == index) {
+            w_mutex_unlock((pthread_mutex_t *)&list->mutex);
+            w_rwlock_unlock((pthread_rwlock_t *)&list->wr_mutex);
+            return (current->data);
+        }
+        count++;
+        current = current->next;
+    }
+
+    w_mutex_unlock((pthread_mutex_t *)&list->mutex);
+    w_rwlock_unlock((pthread_rwlock_t *)&list->wr_mutex);
+
+    return NULL;
+}
+
 /* Add data to the list
  * Returns 1 on success and 0 on failure
  */

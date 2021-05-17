@@ -95,59 +95,6 @@ directory_t *fim_copy_directory(const directory_t *_dir) {
                                 _dir->tag, _dir->diff_size_limit, _dir->is_wildcard);
 }
 
-void update_wildcards_config(OSList *directories,
-                             OSList *wildcards){
-    if (wildcards == NULL || directories == NULL) {
-        return;
-    }
-
-    OSListNode *node_it;
-    OSListNode *aux_it;
-    directory_t *dir_it;
-    directory_t *new_entry;
-    char **paths;
-
-    OSList_foreach(node_it, directories) {
-        dir_it = node_it->data;
-        dir_it->is_expanded = 0;
-    }
-
-    OSList_foreach(node_it, wildcards) {
-        dir_it = node_it->data;
-        paths = expand_wildcards(dir_it->path);
-        if (paths == NULL) {
-            continue;
-        }
-
-        for (int i = 0; paths[i]; i++) {
-            new_entry = fim_copy_directory(dir_it);
-            os_free(new_entry->path);
-            new_entry->path = paths[i];
-            new_entry->is_expanded = 1;
-
-            if (CHECK_FOLLOW & new_entry->options) {
-                new_entry->symbolic_links = realpath(new_entry->path, NULL);
-            }
-
-            fim_insert_directory(directories, new_entry);
-        }
-        os_free(paths);
-    }
-
-    node_it = OSList_GetFirstNode(directories);
-    while (node_it != NULL) {
-        dir_it = node_it->data;
-        if (dir_it->is_wildcard && !dir_it->is_expanded) {
-            aux_it = OSList_GetNext(directories, node_it);
-            free_directory(dir_it);
-            OSList_DeleteThisNode(directories, node_it);
-            node_it = aux_it;
-        } else {
-            node_it = OSList_GetNext(directories, node_it);
-        }
-    }
-}
-
 #ifdef WIN32
 void dump_syscheck_registry(syscheck_config *syscheck,
                             char *entry,
@@ -1072,7 +1019,9 @@ static int read_attr(syscheck_config *syscheck, const char *dirs, char **g_attrs
                 if (syscheck->wildcards == NULL) {
                     syscheck->wildcards = OSList_Create();
                     if (syscheck->wildcards == NULL) {
-                        // TODO error
+                        free_directory(wildcard);
+                        os_free(clean_path);
+                        merror(MEM_ERROR, errno, strerror(errno));
                         continue;
                     }
                 }

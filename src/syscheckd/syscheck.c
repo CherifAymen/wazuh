@@ -116,12 +116,12 @@ int Start_win32_Syscheck()
         if (!syscheck.directories) {
             minfo(FIM_DIRECTORY_NOPROVIDED);
             dump_syscheck_file(&syscheck, "", 0, NULL, 0, NULL, NULL, -1);
-        } else if (syscheck.directories[0]->path == NULL) {
+        } else if (((directory_t *)OSList_GetDataFromIndex(syscheck.directories, 0))->path == NULL) {
             minfo(FIM_DIRECTORY_NOPROVIDED);
         }
 
-        free_directory(syscheck.directories[0]);
-        syscheck.directories[0] = NULL;
+        free_directory(((directory_t *)OSList_GetDataFromIndex(syscheck.directories, 0)));
+        ((directory_t *)OSList_GetDataFromIndex(syscheck.directories, 0)) = NULL;
 
         if (!syscheck.ignore) {
             os_calloc(1, sizeof(char *), syscheck.ignore);

@@ -94,6 +94,7 @@ int fim_rules_initial_load() {
     }
 
     w_mutex_lock(&rules_mutex);
+    w_rwlock_rdlock(&syscheck.directories_lock);
     OSList_foreach(node_it, syscheck.directories) {
         dir_it = node_it->data;
         // Check if dir[i] is set in whodata mode
@@ -140,6 +141,7 @@ int fim_rules_initial_load() {
         // real_path can't be NULL
         free(directory);
     }
+    w_rwlock_unlock(&syscheck.directories_lock);
 
     w_mutex_unlock(&rules_mutex);
     return rules_added;

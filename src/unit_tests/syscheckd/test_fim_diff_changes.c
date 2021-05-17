@@ -89,9 +89,6 @@ static directory_t DIRECTORIES[] = {
     [4] = { .path = "/path/to/ignore", .diff_size_limit = 1024, .options = DEFAULT_OPTIONS },
 };
 
-static directory_t *GLOBAL_CONFIG[] = { [0] = &DIRECTORIES[0], [1] = &DIRECTORIES[1], [2] = &DIRECTORIES[2],
-                                              [3] = &DIRECTORIES[3], [4] = &DIRECTORIES[4], [5] = NULL };
-
 typedef struct gen_diff_struct {
     diff_data *diff;
     char **strarray;
@@ -256,6 +253,7 @@ static int setup_group(void **state) {
     syscheck.nodiff = syscheck_nodiff;
     syscheck.nodiff_regex = syscheck_nodiff_regex;
 
+    // Initialize directories list
     syscheck.directories = GLOBAL_CONFIG;
 
 #ifdef TEST_WINAGENT

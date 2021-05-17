@@ -99,7 +99,7 @@ static int setup_add_directories_to_whodata_list(void **state) {
     expect_function_call_any(__wrap_pthread_rwlock_unlock);
 
     OSList_foreach(node_it, syscheck.directories) {
-        dir_it = node_it->data;(dir_it, RELOAD_CONFIG) {
+        dir_it = node_it->data;
         whodata_directory_t *dir = calloc(1, sizeof(whodata_directory_t));
 
         if (dir == NULL) {

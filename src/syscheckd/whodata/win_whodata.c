@@ -428,6 +428,7 @@ void restore_sacls() {
 
     privilege_enabled = 1;
 
+    w_rwlock_rdlock(&syscheck.directories_lock);
     OSList_foreach(node_it, syscheck.directories) {
         dir_it = node_it->data;
         if (dir_it->dirs_status.status & WD_IGNORE_REST) {
@@ -463,6 +464,7 @@ void restore_sacls() {
             mdebug1(FIM_SACL_RESTORED, dir_it->path);
         }
     }
+    w_rwlock_unlock(&syscheck.directories_lock);
 
 end:
     if (privilege_enabled) {
@@ -931,6 +933,7 @@ long unsigned int WINAPI state_checker(__attribute__((unused)) void *_void) {
     mdebug1(FIM_WHODATA_CHECKTHREAD, interval);
 
     while (FOREVER()) {
+        w_rwlock_rdlock(&syscheck.directories_lock);
         OSList_foreach(node_it, syscheck.directories) {
             dir_it = node_it->data;
             exists = 0;
@@ -995,6 +998,7 @@ long unsigned int WINAPI state_checker(__attribute__((unused)) void *_void) {
             // Set the timestamp
             GetSystemTime(&d_status->last_check);
         }
+        w_rwlock_unlock(&syscheck.directories_lock);
 
         // Go through syscheck.wdata.directories and remove stale entries
         GetSystemTimeAsFileTime(&current_time);

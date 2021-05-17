@@ -103,8 +103,6 @@ int Read_Syscheck_Config(const char *cfgfile)
     ReadConfig(modules, AGENTCONFIG, &syscheck, NULL);
 #endif
 
-    minfo("After ReadConfig");
-
     OSList_foreach(node_it, syscheck.directories) {
         dir_it = node_it->data;
         if (dir_it->diff_size_limit == -1) {
